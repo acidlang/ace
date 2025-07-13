@@ -5,14 +5,10 @@ import
     strformat,
     parseopt,
     times,
-    json,
-    checksums/sha1
+    json
 
 proc runShell(cmd: string): string =
     result = execProcess(cmd)
-
-proc sha1Hash(s: string): string =
-    return $sha1.secureHash(s)
 
 proc parseModule(file: string): (string, string) =
     ## Extract module name and author from module.acidcfg
@@ -109,9 +105,8 @@ proc restoreFromLockFile() =
             removeDir(cloneDir)
             continue
 
-        let (parsedName, author) = parseModule(moduleFile)
-        let authorHash = sha1Hash(author)
-        let targetDir = &"pkg/{parsedName}_{authorHash}"
+        let (parsedName, _) = parseModule(moduleFile)
+        let targetDir = &"pkg/{parsedName}"
 
         if dirExists(targetDir):
             removeDir(targetDir)
@@ -202,9 +197,8 @@ corresponding git repositories HEAD."""
         removeDir(cloneDir)
         quit(1)
 
-    let (moduleName, author) = parseModule(moduleFile)
-    let authorHash = sha1Hash(author)
-    let targetDir = &"pkg/{moduleName}_{authorHash}"
+    let (moduleName, _) = parseModule(moduleFile)
+    let targetDir = &"pkg/{moduleName}"
 
     if dirExists(targetDir):
         removeDir(targetDir)
