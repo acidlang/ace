@@ -34,6 +34,60 @@ proc updateLockFile(moduleName: string, repoUrl: string) =
     }
     writeFile(lockFile, $lockData)
 
+proc removeFromLockFile(moduleName: string) =
+    const lockFile = "acid.lock"
+    if not fileExists(lockFile):
+        echo "No " & lockFile & " found."
+        return
+
+    var lockData = parseJson(readFile(lockFile))
+    if not lockData.hasKey(moduleName):
+        echo &"Module {moduleName} not found in lock file."
+        return
+
+    lockData.delete(moduleName)
+    writeFile(lockFile, $lockData)
+    echo &"Removed {moduleName} from lock file."
+
+proc deleteModule(moduleName: string) =
+    const lockFile = "acid.lock"
+    var found = false
+    var targetDir = ""
+
+    if fileExists(lockFile):
+        let lockData = parseJson(readFile(lockFile))
+        if lockData.hasKey(moduleName):
+            found = true
+            let pkgDir = "pkg"
+            if dirExists(pkgDir):
+                for kind, path in walkDir(pkgDir):
+                    if kind == pcDir:
+                        let dirName = path.splitPath().tail
+                        if dirName.startsWith(moduleName & "_"):
+                            targetDir = path
+                            break
+
+    if not found:
+        let pkgDir = "pkg"
+        if dirExists(pkgDir):
+            for kind, path in walkDir(pkgDir):
+                if kind == pcDir:
+                    let dirName = path.splitPath().tail
+                    if dirName.startsWith(moduleName & "_"):
+                        targetDir = path
+                        found = true
+                        break
+
+    if not found:
+        echo &"Module {moduleName} not found."
+        quit(1)
+
+    if targetDir != "" and dirExists(targetDir):
+        removeDir(targetDir)
+        echo &"Removed module directory {targetDir}"
+
+    removeFromLockFile(moduleName)
+
 proc restoreFromLockFile() =
     const lockFile = "acid.lock"
     if not fileExists(lockFile):
@@ -88,6 +142,7 @@ when isMainModule:
     var inputUrl: string
     var restoreMode = false
     var initMode = false
+    var deleteModule_name: string
 
     for kind, key, val in p.getopt():
         if kind == cmdArgument:
@@ -98,6 +153,8 @@ when isMainModule:
                 inputUrl = val
             elif key == "r":
                 restoreMode = true
+            elif key == "d":
+                deleteModule_name = val
         elif kind == cmdEnd:
             break
 
@@ -109,9 +166,14 @@ when isMainModule:
         restoreFromLockFile()
         quit(0)
 
+    if deleteModule_name.len > 0:
+        deleteModule(deleteModule_name)
+        quit(0)
+
     if inputUrl.len == 0:
         echo "Usage: ace <options>=<params>\n\t-i=<git-repo-link> " &
-            ": Install some package\n\t-r : Restore all packages from lockfile\n\tinit : Initialize module.acidcfg"
+            ": Install some package\n\t-r : Restore all packages from lockfile\n\t-d=<module-name> " &
+            ": Delete a module\n\tinit : Initialize module.acidcfg"
         quit(1)
 
     let repoName = inputUrl.split("/")[^1].replace(".git", "")
