@@ -15,6 +15,4 @@ task make, "Build the project in release mode":
 # Dependencies
 
 requires "nim >= 2.2.2"
-
-
 requires "checksums >= 0.2.1"
