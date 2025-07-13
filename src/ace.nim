@@ -172,7 +172,7 @@ when isMainModule:
 
     if inputUrl.len == 0:
         echo """
-ACE (v0.0.1) - Acid Code Exchange - A package/module manager for Acid
+ACE (v0.0.1) - Acid Code Exchange - A package manager for Acid
 
 Usage: ace <options>=<params>
     
@@ -180,7 +180,15 @@ Usage: ace <options>=<params>
     -r=<module-name> : Remove a package
 
     restore : Restore all packages from lockfile
-    init : Initialize module.acidcfg"""
+    init : Initialize module.acidcfg
+    
+Note: Installing a package that is already installed in the current acid module will update it to the
+corresponding git repositories HEAD.
+    """
+        quit(1)
+
+    if findExe("git") == "":
+        echo "Error: Git is not installed or not in PATH. Install Git."
         quit(1)
 
     let repoName = inputUrl.split("/")[^1].replace(".git", "")
