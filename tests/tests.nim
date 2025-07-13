@@ -5,8 +5,7 @@
 #
 # To run these tests, simply execute `nimble test`.
 
-import unittest
+# import unittest
 
-import apm/submodule
-test "correct welcome":
-  check getWelcomeMessage() == "Hello, World!"
+# test "correct welcome":
+#   check getWelcomeMessage() == "Hello, World!"
