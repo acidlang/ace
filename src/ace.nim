@@ -7,8 +7,10 @@ import
     times,
     json
 
-proc runShell(cmd: string): string =
-    result = execProcess(cmd)
+proc runShell(cmd: string) =
+    ## Execute some process and discard the result.
+    ## This exists to prevent the "discard" pattern repeating itself throughout the code.
+    discard execProcess(cmd)
 
 proc parseModule(file: string): (string, string) =
     ## Extract module name and author from module.acidcfg
@@ -18,6 +20,7 @@ proc parseModule(file: string): (string, string) =
     result = (data["name"].getStr(), data["author"].getStr())
 
 proc updateLockFile(moduleName: string, repoUrl: string) =
+    ## Update the acid.lock
     const lockFile = "acid.lock"
     var lockData: JsonNode
     if fileExists(lockFile):
@@ -97,7 +100,7 @@ proc restoreFromLockFile() =
         let cloneDir = "tmp_" & repoName
 
         echo &"Restoring {moduleName} from {repoUrl}"
-        discard runShell(&"git clone --depth 1 {repoUrl} {cloneDir}")
+        runShell(&"git clone --depth 1 {repoUrl} {cloneDir}")
 
         let moduleFile = cloneDir / "module.acidcfg"
         if not fileExists(moduleFile):
@@ -189,7 +192,7 @@ corresponding git repositories HEAD."""
     let cloneDir = "tmp_" & repoName
 
     echo "Cloning..."
-    discard runShell(&"git clone --depth 1 {inputUrl} {cloneDir}")
+    runShell(&"git clone --depth 1 {inputUrl} {cloneDir}")
 
     let moduleFile = cloneDir / "module.acidcfg"
     if not fileExists(moduleFile):
