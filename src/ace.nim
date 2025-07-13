@@ -148,12 +148,12 @@ when isMainModule:
         if kind == cmdArgument:
             if key == "init":
                 initMode = true
+            elif key == "restore":
+                restoreMode = true
         elif kind == cmdShortOption:
             if key == "i":
                 inputUrl = val
             elif key == "r":
-                restoreMode = true
-            elif key == "d":
                 deleteModule_name = val
         elif kind == cmdEnd:
             break
@@ -171,9 +171,15 @@ when isMainModule:
         quit(0)
 
     if inputUrl.len == 0:
-        echo "Usage: ace <options>=<params>\n\t-i=<git-repo-link> " &
-            ": Install some package\n\t-r : Restore all packages from lockfile\n\t-d=<module-name> " &
-            ": Delete a module\n\tinit : Initialize module.acidcfg"
+        echo """
+Usage: ace <options>=<params>
+    
+    -i=<git-repo-link> : Install a package
+    -r=<module-name> : Remove a package
+
+    restore : Restore all packages from lockfile
+    init : Initialize module.acidcfg
+        """
         quit(1)
 
     let repoName = inputUrl.split("/")[^1].replace(".git", "")
