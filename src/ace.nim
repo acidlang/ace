@@ -176,11 +176,11 @@ ACE (v0.0.1) - Acid Code Exchange - A package manager for Acid
 
 Usage: ace <options>=<params>
     
-    -i=<git-repo-link> : Install a package
-    -r=<module-name> : Remove a package
+    -i=<git-repo-link>  : Install a package
+    -r=<module-name>    : Remove a package
 
-    restore : Restore all packages from lockfile
-    init : Initialize module.acidcfg
+    restore             : Restore all packages from lockfile
+    init                : Initialise module.acidcfg
     
 Note: Installing a package that is already installed in the current acid module will update it to the
 corresponding git repositories HEAD."""
