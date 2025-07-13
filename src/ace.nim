@@ -183,8 +183,7 @@ Usage: ace <options>=<params>
     init : Initialize module.acidcfg
     
 Note: Installing a package that is already installed in the current acid module will update it to the
-corresponding git repositories HEAD.
-    """
+corresponding git repositories HEAD."""
         quit(1)
 
     if findExe("git") == "":
