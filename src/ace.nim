@@ -34,6 +34,7 @@ proc updateLockFile(moduleName: string, repoUrl: string) =
     writeFile(lockFile, $lockData)
 
 proc removeFromLockFile(moduleName: string) =
+    ## Remove an entry from acid.lock
     const lockFile = "acid.lock"
     if not fileExists(lockFile):
         echo "No " & lockFile & " found."
@@ -49,6 +50,8 @@ proc removeFromLockFile(moduleName: string) =
     echo &"Removed {moduleName} from lock file."
 
 proc deleteModule(moduleName: string) =
+    ## Delete a module from the pkg storage directory.
+    ## Also remove the lockfile entry.
     const lockFile = "acid.lock"
     var found = false
     var targetDir = ""
@@ -88,6 +91,7 @@ proc deleteModule(moduleName: string) =
     removeFromLockFile(moduleName)
 
 proc restoreFromLockFile() =
+    ## Restore packages to pkg directory from the lockfile.
     const lockFile = "acid.lock"
     if not fileExists(lockFile):
         echo "No " & lockFile & " found."
@@ -119,6 +123,7 @@ proc restoreFromLockFile() =
         echo &"Restored {parsedName} to {targetDir}"
 
 proc initModuleFile() =
+    ## Initialise the module (acidcfg creation occurs here).
     let cwd = getCurrentDir().splitPath().tail
     let projName = cwd.replace(" ", "_").toLowerAscii()
     let author = getEnv("USER", getEnv("USERNAME", "unknown"))
