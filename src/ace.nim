@@ -28,7 +28,10 @@ proc updateLockFile(moduleName: string, repoUrl: string) =
         lockData = parseJson(readFile(lockFile))
     else:
         lockData = newJObject()
-    lockData[moduleName] = %*{"repo": repoUrl, "timestamp": getTime().format("yyyy-MM-dd'T'HH:mm:ss")}
+    lockData[moduleName] = %*{
+        "repo": repoUrl,
+        "timestamp": getTime().format("yyyy-MM-dd'T'HH:mm:ss")
+    }
     writeFile(lockFile, $lockData)
 
 proc restoreFromLockFile() =
@@ -38,7 +41,6 @@ proc restoreFromLockFile() =
         quit(1)
 
     let lockData = parseJson(readFile(lockFile))
-
     for moduleName in lockData.keys:
         let repoUrl = lockData[moduleName]["repo"].getStr()
         let repoName = repoUrl.split("/")[^1].replace(".git", "")
@@ -64,14 +66,34 @@ proc restoreFromLockFile() =
 
         echo &"Restored {parsedName} to {targetDir}"
 
+proc initModuleFile() =
+    let cwd = getCurrentDir().splitPath().tail
+    let projName = cwd.replace(" ", "_").toLowerAscii()
+    let author = getEnv("USER", getEnv("USERNAME", "unknown"))
+
+    let content = %*{
+        "name": projName,
+        "author": author
+    }
+
+    let filePath = "module.acidcfg"
+    if fileExists(filePath):
+        echo "module.acidcfg already exists. Aborting."
+        quit(1)
+
+    writeFile(filePath, $content)
+    echo &"Initialized module."
+
 when isMainModule:
     var p = initOptParser()
     var inputUrl: string
     var restoreMode = false
+    var initMode = false
 
     for kind, key, val in p.getopt():
         if kind == cmdArgument:
-            discard
+            if key == "init":
+                initMode = true
         elif kind == cmdShortOption:
             if key == "i":
                 inputUrl = val
@@ -80,13 +102,17 @@ when isMainModule:
         elif kind == cmdEnd:
             break
 
+    if initMode:
+        initModuleFile()
+        quit(0)
+
     if restoreMode:
         restoreFromLockFile()
         quit(0)
 
     if inputUrl.len == 0:
         echo "Usage: ace <options>=<params>\n\t-i=<git-repo-link> " &
-            ": Install some package\n\t-r : Restore all packages from lockfile "
+            ": Install some package\n\t-r : Restore all packages from lockfile\n\tinit : Initialize module.acidcfg"
         quit(1)
 
     let repoName = inputUrl.split("/")[^1].replace(".git", "")
