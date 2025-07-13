@@ -107,10 +107,9 @@ when isMainModule:
 
     if dirExists(targetDir):
         removeDir(targetDir)
+
     createDir(targetDir)
     moveDir(cloneDir, targetDir)
-
     echo &"Saved module to {targetDir}"
-
     updateLockFile(moduleName, inputUrl)
     echo "Lockfile updated."
