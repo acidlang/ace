@@ -172,7 +172,7 @@ when isMainModule:
 
     if inputUrl.len == 0:
         echo """
-ACE - Acid Code Engine - A package/module manager for Acid
+ACE (v0.0.1) - Acid Code Engine - A package/module manager for Acid
 
 Usage: ace <options>=<params>
     
