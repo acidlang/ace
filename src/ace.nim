@@ -172,6 +172,8 @@ when isMainModule:
 
     if inputUrl.len == 0:
         echo """
+ACE - Acid Code Engine - A package/module manager for Acid
+
 Usage: ace <options>=<params>
     
     -i=<git-repo-link> : Install a package
