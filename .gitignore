@@ -4,3 +4,4 @@
 pkg
 acid.lock
 .vscode
+*.acidcfg
