@@ -24,14 +24,11 @@ proc parseModule(file: string): (string, string) =
 proc updateLockFile(moduleName: string, repoUrl: string) =
     const lockFile = "acid.lock"
     var lockData: JsonNode
-
     if fileExists(lockFile):
         lockData = parseJson(readFile(lockFile))
     else:
         lockData = newJObject()
-
     lockData[moduleName] = %*{"repo": repoUrl, "timestamp": getTime().format("yyyy-MM-dd'T'HH:mm:ss")}
-
     writeFile(lockFile, $lockData)
 
 when isMainModule:
