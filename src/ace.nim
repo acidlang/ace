@@ -70,13 +70,12 @@ proc initModuleFile() =
     let cwd = getCurrentDir().splitPath().tail
     let projName = cwd.replace(" ", "_").toLowerAscii()
     let author = getEnv("USER", getEnv("USERNAME", "unknown"))
-
     let content = %*{
         "name": projName,
         "author": author
     }
-
     let filePath = "module.acidcfg"
+
     if fileExists(filePath):
         echo "module.acidcfg already exists. Aborting."
         quit(1)
