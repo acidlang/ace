@@ -178,8 +178,7 @@ Usage: ace <options>=<params>
     -r=<module-name> : Remove a package
 
     restore : Restore all packages from lockfile
-    init : Initialize module.acidcfg
-        """
+    init : Initialize module.acidcfg"""
         quit(1)
 
     let repoName = inputUrl.split("/")[^1].replace(".git", "")
