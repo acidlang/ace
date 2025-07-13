@@ -7,7 +7,7 @@ import
     times,
     json
 
-proc runShell(cmd: string) =
+proc run(cmd: string) =
     ## Execute some process and discard the result.
     ## This exists to prevent the "discard" pattern repeating itself throughout the code.
     discard execProcess(cmd)
@@ -100,7 +100,7 @@ proc restoreFromLockFile() =
         let cloneDir = "tmp_" & repoName
 
         echo &"Restoring {moduleName} from {repoUrl}"
-        runShell(&"git clone --depth 1 {repoUrl} {cloneDir}")
+        run(&"git clone --depth 1 {repoUrl} {cloneDir}")
 
         let moduleFile = cloneDir / "module.acidcfg"
         if not fileExists(moduleFile):
@@ -192,7 +192,7 @@ corresponding git repositories HEAD."""
     let cloneDir = "tmp_" & repoName
 
     echo "Cloning..."
-    runShell(&"git clone --depth 1 {inputUrl} {cloneDir}")
+    run(&"git clone --depth 1 {inputUrl} {cloneDir}")
 
     let moduleFile = cloneDir / "module.acidcfg"
     if not fileExists(moduleFile):
