@@ -207,7 +207,6 @@ corresponding git repositories HEAD."""
 
     let (moduleName, _) = parseModule(moduleFile)
     let targetDir = &"pkg/{moduleName}"
-
     if dirExists(targetDir):
         removeDir(targetDir)
 
