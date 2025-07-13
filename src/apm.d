@@ -1,3 +1,5 @@
+module apm;
+
 import std.stdio;
 import std.process;
 import std.file;
