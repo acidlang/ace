@@ -9,7 +9,7 @@ installExt    = @["nim"]
 bin           = @["ace"]
 
 task make, "Build the project in release mode":
-  exec "nim c -d:release --opt:size --stackTrace:off -d:strip src/ace.nim"
+  exec "nim c -d:release --opt:size --stackTrace:off -d:strip --mm:arc src/ace.nim"
 
 
 # Dependencies
