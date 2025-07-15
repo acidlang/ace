@@ -140,12 +140,65 @@ proc initModuleFile() =
     writeFile(filePath, $content)
     echo &"Initialized module."
 
+proc listModules() =
+    const lockFile = "acid.lock"
+    if not fileExists(lockFile):
+        echo "No acid.lock file found."
+        quit(1)
+
+    let lockData = parseJson(readFile(lockFile))
+    if lockData.len == 0:
+        echo "No modules installed."
+        return
+
+    echo "Installed Modules:"
+    for key in lockData.keys:
+        let entry = lockData[key]
+        let repo = entry["repo"].getStr();
+        let timestamp = entry["timestamp"].getStr();
+        echo &"- {key} @ {repo} (installed {timestamp})"
+
+proc showModuleInfo(moduleName: string) =
+    ## Show detailed info about a single module.
+    const lockFile = "acid.lock"
+    if not fileExists(lockFile):
+        echo "No acid.lock file found."
+        quit(1)
+
+    let lockData = parseJson(readFile(lockFile))
+    if not lockData.hasKey(moduleName):
+        echo &"Module '{moduleName}' not found in lock file."
+        quit(1)
+
+    let entry = lockData[moduleName]
+    let repo = entry["repo"].getStr()
+    let tstamp = entry["timestamp"].getStr()
+    echo &"Module: {moduleName}"
+    echo &"Repository: {repo}"
+    echo &"Installed At: {tstamp}"
+
+    let moduleCfg = &"pkg/{moduleName}/module.acidcfg"
+    if fileExists(moduleCfg):
+        let content = parseJson(readFile(moduleCfg))
+        if content.hasKey("author"):
+            let author = content["author"].getStr()
+            echo &"Author: {author}"
+        if content.hasKey("version"):
+            let version = content["version"].getStr()
+            echo &"Version: {version}"
+    else:
+        echo "Warning: module.acidcfg not found in pkg/"
+
+
 when isMainModule:
     var p = initOptParser()
     var inputUrl: string
     var restoreMode = false
     var initMode = false
+    var listMode = false
+    var infoMode = false
     var deleteModule_name: string
+    var infoModuleName: string
 
     for kind, key, val in p.getopt():
         if kind == cmdArgument:
@@ -153,6 +206,10 @@ when isMainModule:
                 initMode = true
             elif key == "restore":
                 restoreMode = true
+            elif key == "list":
+                listMode = true
+            elif key == "info":
+                infoModuleName = val
         elif kind == cmdShortOption:
             if key == "i":
                 inputUrl = val
@@ -173,6 +230,14 @@ when isMainModule:
         deleteModule(deleteModule_name)
         quit(0)
 
+    if listMode:
+        listModules()
+        quit(0)
+
+    if infoMode and infoModuleName.len > 0:
+        showModuleInfo(infoModuleName)
+        quit(0)
+
     if inputUrl.len == 0:
         echo """
 ACE (v0.0.1) - Acid Code Exchange - A package manager for Acid
@@ -184,6 +249,8 @@ Usage: ace <options>=<params>
 
     restore             : Restore all packages from lockfile
     init                : Initialise module.acidcfg
+    list                : List dependencies of current project, requires lockfile
+    info <module>       : List information regarding an installed module
     
 Note: Installing a package that is already installed in the current acid module will update it to the
 corresponding git repositories HEAD."""
