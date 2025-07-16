@@ -1,194 +1,11 @@
 import
     os,
-    osproc,
     strutils,
     strformat,
     parseopt,
-    times,
-    json
-
-proc run(cmd: string) =
-    ## Execute some process and discard the result.
-    ## This exists to prevent the "discard" pattern repeating itself.
-    discard execProcess(cmd)
-
-proc parseModule(file: string): (string, string) =
-    ## Extract module name and author from module.acidcfg
-    ## (format: JSON with name and author fields)
-    let content = readFile(file)
-    let data = parseJson(content)
-    result = (data["name"].getStr(), data["author"].getStr())
-
-proc updateLockFile(moduleName: string, repoUrl: string) =
-    ## Update the acid.lock
-    const lockFile = "acid.lock"
-    var lockData: JsonNode
-    if fileExists(lockFile):
-        lockData = parseJson(readFile(lockFile))
-    else:
-        lockData = newJObject()
-    lockData[moduleName] = %*{
-        "repo": repoUrl,
-        "timestamp": getTime().format("yyyy-MM-dd'T'HH:mm:ss")
-    }
-    writeFile(lockFile, $lockData)
-
-proc removeFromLockFile(moduleName: string) =
-    ## Remove an entry from acid.lock
-    const lockFile = "acid.lock"
-    if not fileExists(lockFile):
-        echo "No " & lockFile & " found."
-        return
-
-    var lockData = parseJson(readFile(lockFile))
-    if not lockData.hasKey(moduleName):
-        echo &"Module {moduleName} not found in lock file."
-        return
-
-    lockData.delete(moduleName)
-    writeFile(lockFile, $lockData)
-    echo &"Removed {moduleName} from lock file."
-
-proc deleteModule(moduleName: string) =
-    ## Delete a module from the pkg storage directory.
-    ## Also remove the lockfile entry.
-    const lockFile = "acid.lock"
-    var found = false
-    var targetDir = ""
-
-    if fileExists(lockFile):
-        let lockData = parseJson(readFile(lockFile))
-        if lockData.hasKey(moduleName):
-            found = true
-            let pkgDir = "pkg"
-            if dirExists(pkgDir):
-                for kind, path in walkDir(pkgDir):
-                    if kind == pcDir:
-                        let dirName = path.splitPath().tail
-                        if dirName.startsWith(moduleName & "_"):
-                            targetDir = path
-                            break
-
-    if not found:
-        let pkgDir = "pkg"
-        if dirExists(pkgDir):
-            for kind, path in walkDir(pkgDir):
-                if kind == pcDir:
-                    let dirName = path.splitPath().tail
-                    if dirName.startsWith(moduleName & "_"):
-                        targetDir = path
-                        found = true
-                        break
-
-    if not found:
-        echo &"Module {moduleName} not found."
-        quit(1)
-
-    if targetDir != "" and dirExists(targetDir):
-        removeDir(targetDir)
-        echo &"Removed module directory {targetDir}"
-
-    removeFromLockFile(moduleName)
-
-proc restoreFromLockFile() =
-    ## Restore packages to pkg directory from the lockfile.
-    const lockFile = "acid.lock"
-    if not fileExists(lockFile):
-        echo "No " & lockFile & " found."
-        quit(1)
-
-    let lockData = parseJson(readFile(lockFile))
-    for moduleName in lockData.keys:
-        let repoUrl = lockData[moduleName]["repo"].getStr()
-        let repoName = repoUrl.split("/")[^1].replace(".git", "")
-        let cloneDir = "tmp_" & repoName
-
-        echo &"Restoring {moduleName} from {repoUrl}"
-        run(&"git clone --depth 1 {repoUrl} {cloneDir}")
-
-        let moduleFile = cloneDir / "module.acidcfg"
-        if not fileExists(moduleFile):
-            echo "No module.acidcfg found for {moduleName}, skipping."
-            removeDir(cloneDir)
-            continue
-
-        let (parsedName, _) = parseModule(moduleFile)
-        let targetDir = &"pkg/{parsedName}"
-
-        if dirExists(targetDir):
-            removeDir(targetDir)
-        createDir(targetDir)
-        moveDir(cloneDir, targetDir)
-
-        echo &"Restored {parsedName} to {targetDir}"
-
-proc initModuleFile() =
-    ## Initialise the module (acidcfg creation occurs here).
-    let cwd = getCurrentDir().splitPath().tail
-    let projName = cwd.replace(" ", "_").toLowerAscii()
-    let author = getEnv("USER", getEnv("USERNAME", "unknown"))
-    let content = %*{
-        "name": projName,
-        "author": author
-    }
-    let filePath = "module.acidcfg"
-
-    if fileExists(filePath):
-        echo "module.acidcfg already exists. Aborting."
-        quit(1)
-
-    writeFile(filePath, $content)
-    echo &"Initialized module."
-
-proc listModules() =
-    const lockFile = "acid.lock"
-    if not fileExists(lockFile):
-        echo "No acid.lock file found."
-        quit(1)
-
-    let lockData = parseJson(readFile(lockFile))
-    if lockData.len == 0:
-        echo "No modules installed."
-        return
-
-    echo "Installed Modules:"
-    for key in lockData.keys:
-        let entry = lockData[key]
-        let repo = entry["repo"].getStr();
-        let timestamp = entry["timestamp"].getStr();
-        echo &"- {key} @ {repo} (installed {timestamp})"
-
-proc showModuleInfo(moduleName: string) =
-    ## Show detailed info about a single module.
-    const lockFile = "acid.lock"
-    if not fileExists(lockFile):
-        echo "No acid.lock file found."
-        quit(1)
-
-    let lockData = parseJson(readFile(lockFile))
-    if not lockData.hasKey(moduleName):
-        echo &"Module '{moduleName}' not found in lock file."
-        quit(1)
-
-    let entry = lockData[moduleName]
-    let repo = entry["repo"].getStr()
-    let tstamp = entry["timestamp"].getStr()
-    echo &"Module: {moduleName}"
-    echo &"Repository: {repo}"
-    echo &"Installed At: {tstamp}"
-
-    let moduleCfg = &"pkg/{moduleName}/module.acidcfg"
-    if fileExists(moduleCfg):
-        let content = parseJson(readFile(moduleCfg))
-        if content.hasKey("author"):
-            let author = content["author"].getStr()
-            echo &"Author: {author}"
-        if content.hasKey("version"):
-            let version = content["version"].getStr()
-            echo &"Version: {version}"
-    else:
-        echo "Warning: module.acidcfg not found in pkg/"
-
+    ace/lockfiles,
+    ace/modules,
+    ace/ops
 
 when isMainModule:
     var p = initOptParser()
@@ -239,8 +56,8 @@ when isMainModule:
         quit(0)
 
     if inputUrl.len == 0:
+        echo "ACE (v0.0.1) - Acid Code Exchange - A package manager for Acid"
         echo """
-ACE (v0.0.1) - Acid Code Exchange - A package manager for Acid
 
 Usage: ace <options>=<params>
     
@@ -250,10 +67,10 @@ Usage: ace <options>=<params>
     restore             : Restore all packages from lockfile
     init                : Initialise module.acidcfg
     list                : List dependencies of current project, requires lockfile
-    info <module>       : List information regarding an installed module
-    
-Note: Installing a package that is already installed in the current acid module will update it to the
-corresponding git repositories HEAD."""
+    info <module>       : List information regarding an installed module"""
+
+        echo "\n\e[90mNote: Installing a package that is already installed in the current acid module will update" &
+             " it to the corresponding git repositories HEAD.\e[0m"
         quit(1)
 
     if findExe("git") == "":
