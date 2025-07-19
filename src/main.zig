@@ -550,13 +550,15 @@ pub fn main() !void {
     if (options.install_url) |url| {
         try checkGitInstalled(allocator);
         var repo_name: []const u8 = undefined;
-        if (std.mem.lastIndexOf(u8, url, "/")) |last_slash| {
-            repo_name = url[last_slash + 1 ..];
-            if (std.mem.endsWith(u8, repo_name, ".git")) {
-                repo_name = repo_name[0 .. repo_name.len - 4];
+        if (url.len > 0) {
+            if (std.mem.lastIndexOf(u8, url, "/")) |last_slash| {
+                repo_name = url[last_slash + 1 ..];
+                if (std.mem.endsWith(u8, repo_name, ".git")) {
+                    repo_name = repo_name[0 .. repo_name.len - 4];
+                }
+            } else {
+                repo_name = url;
             }
-        } else {
-            repo_name = url;
         }
 
         const clone_dir = try std.fmt.allocPrint(allocator, "tmp_{s}", .{repo_name});
@@ -567,7 +569,10 @@ pub fn main() !void {
         defer allocator.free(git_cmd);
         try runCommand(allocator, git_cmd);
 
-        const module_file = try std.fmt.allocPrint(allocator, "{s}/module.acidcfg", .{clone_dir});
+        const module_file = if (clone_dir.len > 0)
+            try std.fmt.allocPrint(allocator, "{s}/module.acidcfg", .{clone_dir})
+        else
+            return AceError.FileOperationFailed;
         defer allocator.free(module_file);
 
         if (!fileExists(module_file)) {
