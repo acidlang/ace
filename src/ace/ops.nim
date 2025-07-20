@@ -12,9 +12,21 @@ proc run*(command: string) =
         echo &"Command failed: {command}"
         quit(1)
 
+proc runQuiet*(command: string) =
+    ## Execute a shell command quietly and quit on failure
+    let quietCommand = when defined(windows):
+        command & " >NUL 2>&1"
+    else:
+        command & " >/dev/null 2>&1"
+    let result = execShellCmd(quietCommand)
+    if result != 0:
+        echo &"Command failed: {command}"
+        quit(1)
+
 proc getGitCommitHash*(repoPath: string): string =
     ## Get the current commit hash of a git repository
-    let (output, exitCode) = execCmdEx("git rev-parse HEAD", workingDir = repoPath)
+    let (output, exitCode) = execCmdEx("git rev-parse HEAD",
+            workingDir = repoPath)
     if exitCode == 0:
         result = output.strip()
     else:
@@ -22,7 +34,8 @@ proc getGitCommitHash*(repoPath: string): string =
 
 proc getGitTags*(repoPath: string): seq[string] =
     ## Get all tags pointing to the current commit
-    let (output, exitCode) = execCmdEx("git tag --points-at HEAD", workingDir = repoPath)
+    let (output, exitCode) = execCmdEx("git tag --points-at HEAD",
+            workingDir = repoPath)
     if exitCode == 0 and output.len > 0:
         result = output.strip().split('\n').filterIt(it.len > 0)
     else:
@@ -30,7 +43,8 @@ proc getGitTags*(repoPath: string): seq[string] =
 
 proc getGitCurrentBranch*(repoPath: string): string =
     ## Get the current branch name
-    let (output, exitCode) = execCmdEx("git branch --show-current", workingDir = repoPath)
+    let (output, exitCode) = execCmdEx("git branch --show-current",
+            workingDir = repoPath)
     if exitCode == 0:
         result = output.strip()
     else:

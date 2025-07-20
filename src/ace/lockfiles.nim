@@ -175,7 +175,6 @@ proc upgradeAllModules*() =
             createDir(targetDir)
             moveDir(cloneDir, targetDir)
 
-            # Update lockfile entry
             let currentDir = getCurrentDir()
             setCurrentDir(targetDir)
             let newCommitHash = getGitCommitHash(".")

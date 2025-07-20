@@ -104,7 +104,7 @@ Version Examples:
     echo "Cloning..."
 
     if targetVersion.len > 0:
-        run(&"git clone {inputUrl} {cloneDir}")
+        runQuiet(&"git clone {inputUrl} {cloneDir}")
 
         let currentDir = getCurrentDir()
         setCurrentDir(cloneDir)
@@ -120,7 +120,7 @@ Version Examples:
 
         echo &"Checked out version {targetVersion} (commit: {commitHash[0..7]})"
     else:
-        run(&"git clone --depth 1 {inputUrl} {cloneDir}")
+        runQuiet(&"git clone --depth 1 {inputUrl} {cloneDir}")
 
     let moduleFile = cloneDir / "module.acidcfg"
     if not fileExists(moduleFile):
