@@ -7,9 +7,14 @@ import
     ops,
     modules
 
-proc updateLockFile*(moduleName: string, repoUrl: string, commitHash: string = "", 
-                                        requestedVersion: string = "", tags: seq[string] = @[], 
-                                        branch: string = "") =
+proc updateLockFile*(
+    moduleName: string,
+    repoUrl: string,
+    commitHash: string = "",
+    requestedVersion: string = "",
+    tags: seq[string] = @[],
+    branch: string = ""
+) =
     ## Update acid.lock with git versioning information
     const lockFile = "acid.lock"
     var lockData: JsonNode
@@ -94,7 +99,6 @@ proc restoreFromLockFile*() =
         let repoUrl = entry["repo"].getStr()
         let commitHash = entry.getOrDefault("commit_hash").getStr()
         let requestedVersion = entry.getOrDefault("requested_version").getStr()
-
         let repoName = repoUrl.split("/")[^1].replace(".git", "")
         let cloneDir = "tmp_" & repoName
 
