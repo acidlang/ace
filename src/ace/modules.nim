@@ -6,14 +6,15 @@ import
     json
 
 proc parseModule*(file: string): (string, string) =
-    ## Extract module name and author from module.acidcfg
-    ## (format: JSON with name and author fields)
+    ## Extract module name and author from module.acidcfg.
+    ## Format: JSON with name and author fields.
     let content = readFile(file)
     let data = parseJson(content)
     result = (data["name"].getStr(), data.getOrDefault("author").getStr("unknown"))
 
 proc initModuleFile*() =
-    ## Initialise the module (acidcfg creation occurs here).
+    ## Initialise the module.
+    ## The .acidcfg creation occurs here.
     let cwd = getCurrentDir().splitPath().tail
     let projName = cwd.replace(" ", "_").toLowerAscii()
     let author = getEnv("USER", getEnv("USERNAME", "unknown"))
