@@ -140,7 +140,6 @@ Version Examples:
 
     let (moduleName, _) = parseModule(moduleFile)
     let targetDir = &"pkg/{moduleName}"
-
     let currentDir = getCurrentDir()
     setCurrentDir(cloneDir)
     let commitHash = getGitCommitHash(".")
