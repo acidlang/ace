@@ -43,7 +43,7 @@ proc listModules*() =
         echo "No modules installed."
         return
 
-    echo "Installed Modules:"
+    echo "Installed Modules\n"
     for key in lockData.keys:
         let entry = lockData[key]
         let repo = entry["repo"].getStr()
