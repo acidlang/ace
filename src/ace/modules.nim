@@ -43,7 +43,7 @@ proc listModules*() =
         echo "No modules installed."
         return
 
-    echo "Installed Modules\n"
+    echo "Installed Modules:\n"
     for key in lockData.keys:
         let entry = lockData[key]
         let repo = entry["repo"].getStr()
@@ -57,7 +57,7 @@ proc listModules*() =
         elif commitHash.len > 0:
             versionInfo = &" ({commitHash[0..7]})"
 
-        echo &"- {key}{versionInfo} @ {repo} (installed {timestamp})"
+        echo &"\t- {key}{versionInfo} @ {repo} (installed {timestamp})\n"
 
 proc showModuleInfo*(moduleName: string) =
     ## Show detailed info about a single module including git version information.
