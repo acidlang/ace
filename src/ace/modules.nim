@@ -33,6 +33,7 @@ proc initModuleFile*() =
     echo &"Initialized module."
 
 proc listModules*() =
+    ## Write the installed modules in current project to stdout stream.
     const lockFile = "acid.lock"
     if not fileExists(lockFile):
         echo "No acid.lock file found."
