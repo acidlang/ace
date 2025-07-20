@@ -56,7 +56,7 @@ proc listModules*() =
         elif commitHash.len > 0:
             versionInfo = &" ({commitHash[0..7]})"
 
-        echo &"- {key}{versionInfo} @ {repo} (installed {timestamp})\n"
+        echo &"- {key}{versionInfo} @ {repo} (installed {timestamp})"
 
 proc showModuleInfo*(moduleName: string) =
     ## Show detailed info about a single module including git version information.
