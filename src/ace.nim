@@ -8,6 +8,8 @@ import
     ace/ops
 
 when isMainModule:
+    const version = "v0.1.1"
+
     var p = initOptParser()
     var inputUrl: string
     var targetVersion: string
@@ -15,6 +17,7 @@ when isMainModule:
     var initMode = false
     var listMode = false
     var infoMode = false
+    var versionMode = false
     var upgradeMode = false
     var deleteModule_name: string
     var infoModuleName: string
@@ -25,6 +28,8 @@ when isMainModule:
                 initMode = true
             elif key == "restore":
                 restoreMode = true
+            elif key == "version":
+                versionMode = true
             elif key == "list":
                 listMode = true
             elif key == "info":
@@ -47,6 +52,10 @@ when isMainModule:
                 targetVersion = val
         elif kind == cmdEnd:
             break
+
+    if versionMode:
+        echo version
+        quit(0)
 
     if initMode:
         initModuleFile()
@@ -73,7 +82,7 @@ when isMainModule:
         quit(0)
 
     if inputUrl.len == 0:
-        echo "ACE (v0.1.1) - Acid Code Exchange - A package manager for Acid"
+        echo &"ACE ({version}) - Acid Code Exchange - A package manager for Acid"
         echo """
 
 Usage: ace <options>=<params>
@@ -83,6 +92,7 @@ Usage: ace <options>=<params>
     -v=<version>                    : Specify version (tag, branch, or commit hash)
     restore                         : Restore all packages from lockfile
     upgrade                         : Upgrade all packages to latest versions
+    version                         : Show installed version of ace
     init                            : Initialise module.acidcfg
     list                            : List dependencies of current project, requires lockfile
     info <module>                   : List information regarding an installed module
