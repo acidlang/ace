@@ -106,4 +106,4 @@ proc showModuleInfo*(moduleName: string) =
             let version = content["version"].getStr()
             echo &"Module Version: {version}"
     else:
-        echo "Warning: module.acidcfg not found in pkg/"
+        echo "Warning: module.acidcfg not found in pkg/ directory"
