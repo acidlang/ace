@@ -7,5 +7,5 @@ acid.lock
 *.acidcfg
 *obj
 nimclipboard
-ace
 shark
+/ace
