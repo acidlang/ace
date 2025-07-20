@@ -10,7 +10,7 @@ import
 proc updateLockFile*(moduleName: string, repoUrl: string, commitHash: string = "", 
                                         requestedVersion: string = "", tags: seq[string] = @[], 
                                         branch: string = "") =
-    ## Update the acid.lock with enhanced git versioning information
+    ## Update acid.lock with git versioning information
     const lockFile = "acid.lock"
     var lockData: JsonNode
 
