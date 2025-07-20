@@ -73,7 +73,7 @@ when isMainModule:
         quit(0)
 
     if inputUrl.len == 0:
-        echo "ACE (v0.1.0) - Acid Code Exchange - A package manager for Acid"
+        echo "ACE (v0.1.1) - Acid Code Exchange - A package manager for Acid"
         echo """
 
 Usage: ace <options>=<params>

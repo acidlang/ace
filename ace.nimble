@@ -1,6 +1,6 @@
 # Package
 
-version       = "0.0.1"
+version       = "0.1.1"
 author        = "Navid M"
 description   = "Package manager for Acid"
 license       = "GPL-3.0-or-later"
