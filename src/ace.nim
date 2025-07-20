@@ -10,10 +10,12 @@ import
 when isMainModule:
     var p = initOptParser()
     var inputUrl: string
+    var targetVersion: string
     var restoreMode = false
     var initMode = false
     var listMode = false
     var infoMode = false
+    var upgradeMode = false
     var deleteModule_name: string
     var infoModuleName: string
 
@@ -26,12 +28,23 @@ when isMainModule:
             elif key == "list":
                 listMode = true
             elif key == "info":
+                infoMode = true
                 infoModuleName = val
+            elif key == "upgrade":
+                upgradeMode = true
         elif kind == cmdShortOption:
             if key == "i":
-                inputUrl = val
+                if "@" in val:
+                    let parts = val.split("@", 1)
+                    inputUrl = parts[0]
+                    targetVersion = parts[1]
+                else:
+                    inputUrl = val
+                    targetVersion = ""
             elif key == "r":
                 deleteModule_name = val
+            elif key == "v":
+                targetVersion = val
         elif kind == cmdEnd:
             break
 
@@ -41,6 +54,10 @@ when isMainModule:
 
     if restoreMode:
         restoreFromLockFile()
+        quit(0)
+
+    if upgradeMode:
+        upgradeAllModules()
         quit(0)
 
     if deleteModule_name.len > 0:
@@ -56,21 +73,25 @@ when isMainModule:
         quit(0)
 
     if inputUrl.len == 0:
-        echo "ACE (v0.0.1) - Acid Code Exchange - A package manager for Acid"
+        echo "ACE (v0.1.0) - Acid Code Exchange - A package manager for Acid"
         echo """
 
 Usage: ace <options>=<params>
-    
-    -i=<git-repo-link>  : Install a package
-    -r=<module-name>    : Remove a package
 
-    restore             : Restore all packages from lockfile
-    init                : Initialise module.acidcfg
-    list                : List dependencies of current project, requires lockfile
-    info <module>       : List information regarding an installed module"""
+    -i=<git-repo-link>[@version]    : Install a package (optionally at specific version)
+    -r=<module-name>                : Remove a package
+    -v=<version>                    : Specify version (tag, branch, or commit hash)
+    restore                         : Restore all packages from lockfile
+    upgrade                         : Upgrade all packages to latest versions
+    init                            : Initialise module.acidcfg
+    list                            : List dependencies of current project, requires lockfile
+    info <module>                   : List information regarding an installed module
 
-        echo "\n\e[90mNote: Installing a package that is already installed in the current acid module will update" &
-             " it to the corresponding git repositories HEAD.\e[0m"
+Version Examples:
+    ace -i=https://github.com/user/repo@v1.2.3    # Install specific tag
+    ace -i=https://github.com/user/repo@main      # Install specific branch
+    ace -i=https://github.com/user/repo@abc123    # Install specific commit"""
+        echo "\n\e[90mNote: Installing a package that is already installed will update it to the specified version or HEAD.\e[0m"
         quit(1)
 
     if findExe("git") == "":
@@ -81,7 +102,25 @@ Usage: ace <options>=<params>
     let cloneDir = "tmp_" & repoName
 
     echo "Cloning..."
-    run(&"git clone --depth 1 {inputUrl} {cloneDir}")
+
+    if targetVersion.len > 0:
+        run(&"git clone {inputUrl} {cloneDir}")
+
+        let currentDir = getCurrentDir()
+        setCurrentDir(cloneDir)
+        let checkoutResult = execShellCmd(&"git checkout {targetVersion}")
+        if checkoutResult != 0:
+            echo &"Error: Could not checkout version '{targetVersion}'"
+            setCurrentDir(currentDir)
+            removeDir(cloneDir)
+            quit(1)
+
+        let commitHash = getGitCommitHash(".")
+        setCurrentDir(currentDir)
+
+        echo &"Checked out version {targetVersion} (commit: {commitHash[0..7]})"
+    else:
+        run(&"git clone --depth 1 {inputUrl} {cloneDir}")
 
     let moduleFile = cloneDir / "module.acidcfg"
     if not fileExists(moduleFile):
@@ -91,11 +130,20 @@ Usage: ace <options>=<params>
 
     let (moduleName, _) = parseModule(moduleFile)
     let targetDir = &"pkg/{moduleName}"
+
+    # Get version info before moving
+    let currentDir = getCurrentDir()
+    setCurrentDir(cloneDir)
+    let commitHash = getGitCommitHash(".")
+    let gitTags = getGitTags(".")
+    let currentBranch = getGitCurrentBranch(".")
+    setCurrentDir(currentDir)
+
     if dirExists(targetDir):
         removeDir(targetDir)
 
     createDir(targetDir)
     moveDir(cloneDir, targetDir)
     echo &"Saved module to {targetDir}"
-    updateLockFile(moduleName, inputUrl)
-    echo "Lockfile updated."
+    updateLockFile(moduleName, inputUrl, commitHash, targetVersion, gitTags, currentBranch)
+    echo "Lockfile updated with version information."

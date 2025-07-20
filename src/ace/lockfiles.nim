@@ -7,19 +7,31 @@ import
     ops,
     modules
 
-proc updateLockFile*(moduleName: string, repoUrl: string) =
-    ## Update the acid.lock
+proc updateLockFile*(moduleName: string, repoUrl: string, commitHash: string = "", 
+                                        requestedVersion: string = "", tags: seq[string] = @[], 
+                                        branch: string = "") =
+    ## Update the acid.lock with enhanced git versioning information
     const lockFile = "acid.lock"
     var lockData: JsonNode
+
     if fileExists(lockFile):
         lockData = parseJson(readFile(lockFile))
     else:
         lockData = newJObject()
-    lockData[moduleName] = %*{
+
+    var moduleEntry = %*{
         "repo": repoUrl,
-        "timestamp": getTime().format("yyyy-MM-dd'T'HH:mm:ss")
+        "timestamp": getTime().format("yyyy-MM-dd'T'HH:mm:ss"),
+        "commit_hash": commitHash,
+        "requested_version": requestedVersion,
+        "branch": branch
     }
-    writeFile(lockFile, $lockData)
+
+    if tags.len > 0:
+        moduleEntry["tags"] = %tags
+
+    lockData[moduleName] = moduleEntry
+    writeFile(lockFile, lockData.pretty())
 
 proc removeFromLockFile(moduleName: string) =
     ## Remove an entry from acid.lock
@@ -34,7 +46,7 @@ proc removeFromLockFile(moduleName: string) =
         return
 
     lockData.delete(moduleName)
-    writeFile(lockFile, $lockData)
+    writeFile(lockFile, lockData.pretty())
     echo &"Removed {moduleName} from lock file."
 
 proc deleteModule*(moduleName: string) =
@@ -48,25 +60,16 @@ proc deleteModule*(moduleName: string) =
         let lockData = parseJson(readFile(lockFile))
         if lockData.hasKey(moduleName):
             found = true
-            let pkgDir = "pkg"
-            if dirExists(pkgDir):
-                for kind, path in walkDir(pkgDir):
-                    if kind == pcDir:
-                        let dirName = path.splitPath().tail
-                        if dirName.startsWith(moduleName & "_"):
-                            targetDir = path
-                            break
 
-    if not found:
-        let pkgDir = "pkg"
-        if dirExists(pkgDir):
-            for kind, path in walkDir(pkgDir):
-                if kind == pcDir:
-                    let dirName = path.splitPath().tail
-                    if dirName.startsWith(moduleName & "_"):
-                        targetDir = path
-                        found = true
-                        break
+    let pkgDir = "pkg"
+    if dirExists(pkgDir):
+        for kind, path in walkDir(pkgDir):
+            if kind == pcDir:
+                let dirName = path.splitPath().tail
+                if dirName == moduleName:
+                    targetDir = path
+                    found = true
+                    break
 
     if not found:
         echo &"Module {moduleName} not found."
@@ -79,7 +82,7 @@ proc deleteModule*(moduleName: string) =
     removeFromLockFile(moduleName)
 
 proc restoreFromLockFile*() =
-    ## Restore packages to pkg directory from the lockfile.
+    ## Restore packages to pkg directory from the lockfile with exact versions.
     const lockFile = "acid.lock"
     if not fileExists(lockFile):
         echo "No " & lockFile & " found."
@@ -87,16 +90,35 @@ proc restoreFromLockFile*() =
 
     let lockData = parseJson(readFile(lockFile))
     for moduleName in lockData.keys:
-        let repoUrl = lockData[moduleName]["repo"].getStr()
+        let entry = lockData[moduleName]
+        let repoUrl = entry["repo"].getStr()
+        let commitHash = entry.getOrDefault("commit_hash").getStr()
+        let requestedVersion = entry.getOrDefault("requested_version").getStr()
+
         let repoName = repoUrl.split("/")[^1].replace(".git", "")
         let cloneDir = "tmp_" & repoName
 
         echo &"Restoring {moduleName} from {repoUrl}"
-        run(&"git clone --depth 1 {repoUrl} {cloneDir}")
+
+        if commitHash.len > 0:
+            echo &"  Target commit: {commitHash[0..7]}"
+            if requestedVersion.len > 0:
+                echo &"  Original version: {requestedVersion}"
+
+        run(&"git clone {repoUrl} {cloneDir}")
+
+        if commitHash.len > 0:
+            let currentDir = getCurrentDir()
+            setCurrentDir(cloneDir)
+            let checkoutResult = execShellCmd(&"git checkout {commitHash}")
+            setCurrentDir(currentDir)
+
+            if checkoutResult != 0:
+                echo &"Warning: Could not checkout commit {commitHash} for {moduleName}"
 
         let moduleFile = cloneDir / "module.acidcfg"
         if not fileExists(moduleFile):
-            echo "No module.acidcfg found for {moduleName}, skipping."
+            echo &"No module.acidcfg found for {moduleName}, skipping."
             removeDir(cloneDir)
             continue
 
@@ -105,7 +127,63 @@ proc restoreFromLockFile*() =
 
         if dirExists(targetDir):
             removeDir(targetDir)
+
         createDir(targetDir)
         moveDir(cloneDir, targetDir)
-
         echo &"Restored {parsedName} to {targetDir}"
+
+proc upgradeAllModules*() =
+    ## Upgrade all modules to their latest versions
+    const lockFile = "acid.lock"
+    if not fileExists(lockFile):
+        echo "No " & lockFile & " found."
+        quit(1)
+
+    let lockData = parseJson(readFile(lockFile))
+    if lockData.len == 0:
+        echo "No modules to upgrade."
+        return
+
+    echo "Upgrading all modules to latest versions..."
+
+    for moduleName in lockData.keys:
+        let entry = lockData[moduleName]
+        let repoUrl = entry["repo"].getStr()
+        let currentHash = entry.getOrDefault("commit_hash").getStr()
+
+        echo &"Checking {moduleName}..."
+
+        let latestHash = getLatestCommitHash(repoUrl)
+
+        if latestHash.len > 0 and latestHash != currentHash:
+            echo &"  Updating from {currentHash[0..7]} to {latestHash[0..7]}"
+
+            let repoName = repoUrl.split("/")[^1].replace(".git", "")
+            let cloneDir = "tmp_" & repoName
+            run(&"git clone --depth 1 {repoUrl} {cloneDir}")
+
+            let moduleFile = cloneDir / "module.acidcfg"
+            if not fileExists(moduleFile):
+                echo &"  Warning: No module.acidcfg found, skipping {moduleName}"
+                removeDir(cloneDir)
+                continue
+
+            let targetDir = &"pkg/{moduleName}"
+            if dirExists(targetDir):
+                removeDir(targetDir)
+
+            createDir(targetDir)
+            moveDir(cloneDir, targetDir)
+
+            # Update lockfile entry
+            let currentDir = getCurrentDir()
+            setCurrentDir(targetDir)
+            let newCommitHash = getGitCommitHash(".")
+            let newTags = getGitTags(".")
+            let newBranch = getGitCurrentBranch(".")
+            setCurrentDir(currentDir)
+
+            updateLockFile(moduleName, repoUrl, newCommitHash, "", newTags, newBranch)
+            echo &"  Updated {moduleName}"
+        else:
+            echo &"  {moduleName} is already up to date"
