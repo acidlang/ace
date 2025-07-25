@@ -12,6 +12,7 @@ import std.conv;
 import std.json;
 import std.datetime;
 import std.typecons;
+import core.stdc.stdlib;
 
 void initModuleFile();
 void restoreFromLockFile();
