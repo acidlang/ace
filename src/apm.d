@@ -40,6 +40,62 @@ void run(string command)
     }
 }
 
+void moveDirectory(string source, string destination)
+{
+    import std.algorithm : each;
+    import std.range : walkLength;
+
+    if (!exists(source))
+    {
+        throw new Exception("Source directory does not exist: " ~ source);
+    }
+
+    string destParent = dirName(destination);
+    if (!exists(destParent))
+    {
+        mkdirRecurse(destParent);
+    }
+
+    try
+    {
+        rename(source, destination);
+        return;
+    }
+    catch (Exception e)
+    {
+    }
+
+    if (!exists(destination))
+    {
+        mkdirRecurse(destination);
+    }
+
+    foreach (DirEntry entry; dirEntries(source, SpanMode.breadth))
+    {
+        string relativePath = relativePath(entry.name, source);
+        string destPath = buildPath(destination, relativePath);
+
+        if (entry.isDir)
+        {
+            if (!exists(destPath))
+            {
+                mkdir(destPath);
+            }
+        }
+        else
+        {
+            string destDir = dirName(destPath);
+            if (!exists(destDir))
+            {
+                mkdirRecurse(destDir);
+            }
+            copy(entry.name, destPath);
+        }
+    }
+
+    rmdirRecurse(source);
+}
+
 void runQuiet(string command)
 {
     version (Windows)
@@ -380,8 +436,8 @@ void restoreFromLockFile()
             rmdirRecurse(targetDir);
         }
 
-        mkdirRecurse(targetDir);
-        rename(cloneDir, targetDir);
+        mkdirRecurse(dirName(targetDir));
+        moveDirectory(cloneDir, targetDir);
         writefln("Restored %s to %s", parsedName, targetDir);
     }
 }
@@ -442,8 +498,8 @@ void upgradeAllModules()
                 rmdirRecurse(targetDir);
             }
 
-            mkdirRecurse(targetDir);
-            rename(cloneDir, targetDir);
+            mkdirRecurse(dirName(targetDir));
+            moveDirectory(cloneDir, targetDir);
 
             string newCommitHash = getGitCommitHash(targetDir);
             string[] newTags = getGitTags(targetDir);
@@ -738,8 +794,8 @@ Version Examples:
     ace -i=https://github.com/user/repo@v1.2.3  # Install specific tag
     ace -i=https://github.com/user/repo@main    # Install specific branch
     ace -i=https://github.com/user/repo@abc123  # Install specific commit`);
-        writeln("\n\033[90mNote: Installing a package that is already installed will update it" ~
-                "to the specified version or HEAD.\033[0m");
+        writeln("\n\033[90mNote: Installing a package that is" ~
+                " already installed will update it to the specified version or HEAD.\033[0m");
         return 1;
     }
 
@@ -804,8 +860,8 @@ Version Examples:
         rmdirRecurse(targetDir);
     }
 
-    mkdirRecurse(targetDir);
-    rename(cloneDir, targetDir);
+    mkdirRecurse(dirName(targetDir));
+    moveDirectory(cloneDir, targetDir);
     writefln("Saved module to %s", targetDir);
 
     updateLockFile(moduleName, inputUrl, commitHash, targetVersion, gitTags, currentBranch);
