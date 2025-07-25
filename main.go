@@ -639,16 +639,18 @@ Version Examples:
 func main() {
 	args := os.Args[1:]
 
-	var inputURL string
-	var targetVersion string
-	var restoreMode bool
-	var initMode bool
-	var listMode bool
-	var infoMode bool
-	var versionMode bool
-	var upgradeMode bool
-	var deleteModuleName string
-	var infoModuleName string
+	var (
+		inputURL         string
+		targetVersion    string
+		restoreMode      bool
+		initMode         bool
+		listMode         bool
+		infoMode         bool
+		versionMode      bool
+		upgradeMode      bool
+		deleteModuleName string
+		infoModuleName   string
+	)
 
 	for i, arg := range args {
 		if arg == "init" {
