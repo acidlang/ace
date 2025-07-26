@@ -41,36 +41,52 @@ func parseLockFile(filename string) (LockFile, error) {
 	var currentModule string
 	var currentEntry LockEntry
 
+	fieldNames := map[string]bool{
+		"repo":              true,
+		"timestamp":         true,
+		"commit_hash":       true,
+		"requested_version": true,
+		"branch":            true,
+		"tags":              true,
+	}
+
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		if line == "" || line == "{" || line == "}" {
 			continue
 		}
 
-		if strings.Contains(line, "\":") && !strings.Contains(line, "\"repo\":") {
-			if currentModule != "" {
-				lockFile[currentModule] = currentEntry
-			}
-			currentModule = extractString(line, "\"", "\":")
-			currentEntry = LockEntry{}
-		} else if strings.Contains(line, "\"repo\":") {
-			currentEntry.Repo = extractString(line, "\"repo\": \"", "\"")
-		} else if strings.Contains(line, "\"timestamp\":") {
-			currentEntry.Timestamp = extractString(line, "\"timestamp\": \"", "\"")
-		} else if strings.Contains(line, "\"commit_hash\":") {
-			currentEntry.CommitHash = extractString(line, "\"commit_hash\": \"", "\"")
-		} else if strings.Contains(line, "\"requested_version\":") {
-			currentEntry.RequestedVersion = extractString(line, "\"requested_version\": \"", "\"")
-		} else if strings.Contains(line, "\"branch\":") {
-			currentEntry.Branch = extractString(line, "\"branch\": \"", "\"")
-		} else if strings.Contains(line, "\"tags\":") {
-			tagsStr := extractString(line, "\"tags\": [", "]")
-			if tagsStr != "" {
-				tags := strings.Split(tagsStr, ",")
-				for i, tag := range tags {
-					tags[i] = strings.Trim(strings.TrimSpace(tag), "\"")
+		if strings.Contains(line, "\":") {
+			fieldName := extractString(line, "\"", "\":")
+
+			if !fieldNames[fieldName] {
+				if currentModule != "" {
+					lockFile[currentModule] = currentEntry
 				}
-				currentEntry.Tags = tags
+				currentModule = fieldName
+				currentEntry = LockEntry{}
+			} else {
+				switch fieldName {
+				case "repo":
+					currentEntry.Repo = extractString(line, "\"repo\": \"", "\"")
+				case "timestamp":
+					currentEntry.Timestamp = extractString(line, "\"timestamp\": \"", "\"")
+				case "commit_hash":
+					currentEntry.CommitHash = extractString(line, "\"commit_hash\": \"", "\"")
+				case "requested_version":
+					currentEntry.RequestedVersion = extractString(line, "\"requested_version\": \"", "\"")
+				case "branch":
+					currentEntry.Branch = extractString(line, "\"branch\": \"", "\"")
+				case "tags":
+					tagsStr := extractString(line, "\"tags\": [", "]")
+					if tagsStr != "" {
+						tags := strings.Split(tagsStr, ",")
+						for i, tag := range tags {
+							tags[i] = strings.Trim(strings.TrimSpace(tag), "\"")
+						}
+						currentEntry.Tags = tags
+					}
+				}
 			}
 		}
 	}
