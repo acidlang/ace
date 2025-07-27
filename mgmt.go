@@ -163,6 +163,7 @@ type ModuleConfig struct {
 	Version string `json:"version"`
 }
 
+// Parse the module configuration from a file and get back the object.
 func parseModuleConfig(filename string) (ModuleConfig, error) {
 	var config ModuleConfig
 
@@ -192,6 +193,7 @@ func parseModuleConfig(filename string) (ModuleConfig, error) {
 	return config, nil
 }
 
+// Write the module configuration to disk.
 func writeModuleConfig(filename string, config ModuleConfig) error {
 	file, err := os.Create(filename)
 	if err != nil {
