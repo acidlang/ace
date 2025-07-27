@@ -23,6 +23,9 @@ type LockEntry struct {
 
 type LockFile map[string]LockEntry
 
+// Parse some lockfile given the filename.
+//
+// Returns the lockfile instance.
 func parseLockFile(filename string) (LockFile, error) {
 	lockFile := make(LockFile)
 
@@ -98,21 +101,22 @@ func parseLockFile(filename string) (LockFile, error) {
 	return lockFile, nil
 }
 
+// Extract a string given a start, end and superstring.
 func extractString(line, start, end string) string {
 	startIdx := strings.Index(line, start)
 	if startIdx == -1 {
 		return ""
 	}
 	startIdx += len(start)
-
 	endIdx := strings.Index(line[startIdx:], end)
 	if endIdx == -1 {
 		return ""
 	}
-
 	return line[startIdx : startIdx+endIdx]
 }
 
+// Write to the lockfile given the filename and the lockfile instance,
+// (Not a pointer to it, the instance copy itself).
 func writeLockFile(filename string, lockFile LockFile) error {
 	file, err := os.Create(filename)
 	if err != nil {
@@ -152,6 +156,7 @@ func writeLockFile(filename string, lockFile LockFile) error {
 	return nil
 }
 
+// A module configuration, containing name, author and version.
 type ModuleConfig struct {
 	Name    string `json:"name"`
 	Author  string `json:"author"`
