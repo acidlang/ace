@@ -23,6 +23,7 @@ func main() {
 		infoMode         bool
 		versionMode      bool
 		upgradeMode      bool
+		graphMode        bool
 		deleteModuleName string
 		infoModuleName   string
 	)
@@ -36,6 +37,8 @@ func main() {
 			versionMode = true
 		} else if arg == "list" {
 			listMode = true
+		} else if arg == "graph" {
+			graphMode = true
 		} else if arg == "info" {
 			infoMode = true
 			if i+1 < len(args) {
@@ -91,6 +94,14 @@ func main() {
 
 	if infoMode && infoModuleName != "" {
 		modules.ShowModuleInfo(infoModuleName)
+		os.Exit(0)
+	}
+
+	if graphMode {
+		if err := modules.PrintDependencyGraph(); err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
 		os.Exit(0)
 	}
 
@@ -206,6 +217,7 @@ Usage: ace <options>=<params>
     init                         : Initialise module.acidcfg
     list                         : List dependencies of current project, requires lockfile
     info <module>                : List information regarding an installed module
+    graph                        : Display a dependency tree of the current project
 
 Version Examples:
     ace -i=https://github.com/user/repo@v1.2.3  # Install specific tag
